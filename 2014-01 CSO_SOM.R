@@ -20,6 +20,7 @@ library(sp)
 library(maptools)
 library(reshape2)
 library(rgeos)
+library(rgdal)
 
 # Colour palette definition
 pretty_palette <- c("#1f77b4", '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2')
@@ -38,10 +39,9 @@ filter <- TRUE       # choose to filter output to Dublin area only (good for sma
 
 # Load the data into a data frame
 # Get the map of these areas and filter for Dublin areas.
-
 if (small_areas){
   data_raw <- read.csv("./census_data/AllThemesTablesSA.csv")  
-  ireland_map <- readShapePoly('./boundary_files/Census2011_Small_Areas_generalised20m.shp')
+  ireland_map <- readOGR('./boundary_files/Census2011_Small_Areas_generalised20m.shp', encoding = 'utf8')
   #Note that the map polygons and the census data are not in the same order - rearrangement:
   data_raw <- data_raw[match(ireland_map$SMALL_AREA, data_raw$GEOGDESC),]
   idcol="GEOGDESC"
@@ -49,7 +49,7 @@ if (small_areas){
 } else {
   data_raw <- read.csv("./census_data/AllThemesTablesED.csv")  
   names(data_raw)[1] <- "GEOGID" 
-  ireland_map <- readShapePoly('./boundary_files/Census2011_Electoral_Divisions_generalised20m.shp')
+  ireland_map <- readOGR('./boundary_files/Census2011_Electoral_Divisions_generalised20m.shp', encoding='utf8')
   ireland_map$CSOED <- paste0("E", ireland_map$CSOED)
   #Note that the map polygons and the census data are not in the same order
   data_raw <- data_raw[match(ireland_map$CSOED, data_raw$GEOGID),]
@@ -58,7 +58,7 @@ if (small_areas){
 
 #Filter now for certain counties
 if (filter){
-  counties <- c("Fingal", "Dublin City", "South Dublin", "Dún Laoghaire-Rathdown")
+  counties <- c("Fingal", "Dublin City", "South Dublin", "Dn Laoghaire-Rathdown")
   plot_idx <- ireland_map$COUNTYNAME %in% counties
   data_raw <- data_raw[plot_idx,]
   ireland_map <- ireland_map[plot_idx,]
@@ -103,12 +103,9 @@ if (small_areas){
 # Train the SOM model!
 system.time(som_model <- som(data_train_matrix, 
                              grid=som_grid, 
-                             rlen=100, 
-                             alpha=c(0.05,0.01), 
-                             n.hood = "circular",
+                             rlen=1000, 
+                             alpha=c(0.1,0.01), 
                              keep.data = TRUE ))
-
-rm(som_grid, data_train_matrix)
 
 # -------------------- SOM VISUALISATION -----------------
 
@@ -129,25 +126,25 @@ plot(som_model, type="dist.neighbours", main = "SOM neighbour distances", palett
 plot(som_model, type = "codes")
 
 # Plot the heatmap for a variable at scaled / normalised values
-var <- 2
-plot(som_model, type = "property", property = som_model$codes[,var], main=names(som_model$data)[var], palette.name=coolBlueHotRed)
+var <- 4 #define the variable to plot
+plot(som_model, type = "property", property = getCodes(som_model)[,var], main=colnames(getCodes(som_model))[var], palette.name=coolBlueHotRed)
 
 # Plot the original scale heatmap for a variable from the training set:
-var <- 4 #define the variable to plot
+var <- 2 #define the variable to plot
 var_unscaled <- aggregate(as.numeric(data_train[,var]), by=list(som_model$unit.classif), FUN=mean, simplify=TRUE)[,2]
 plot(som_model, type = "property", property=var_unscaled, main=names(data_train)[var], palette.name=coolBlueHotRed)
-rm(var_unscaled, var)
+rm(var_unscaled)
 
 #plot a variable from the original data set (will be uncapped etc.)
 # This function produces a menu for multiple heatmaps.
 source('plotHeatMap.R')
-plotHeatMap(som_model, data, variable=0)
+plotHeatMap(som_model, data, variable=1)
 
 # ------------------ Clustering SOM results -------------------
 
 # show the WCSS metric for kmeans for different clustering sizes.
 # Can be used as a "rough" indicator of the ideal number of clusters
-mydata <- som_model$codes
+mydata <- getCodes(som_model)
 wss <- (nrow(mydata)-1)*sum(apply(mydata,2,var))
 for (i in 2:15) wss[i] <- sum(kmeans(mydata,
                                      centers=i)$withinss)
@@ -157,7 +154,7 @@ plot(1:15, wss, type="b", xlab="Number of Clusters",
 
 # Form clusters on grid
 ## use hierarchical clustering to cluster the codebook vectors
-som_cluster <- cutree(hclust(dist(som_model$codes)), 6)
+som_cluster <- cutree(hclust(dist(getCodes(som_model))), 6)
 
 # Show the map with different colours for every cluster						  
 plot(som_model, type="mapping", bgcol = pretty_palette[som_cluster], main = "Clusters")
