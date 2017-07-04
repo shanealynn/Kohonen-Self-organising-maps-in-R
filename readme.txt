@@ -15,7 +15,7 @@ Ireland Census data: http://www.cso.ie/en/census/census2011smallareapopulationst
 Ireland Boundary files: http://www.cso.ie/en/census/census2011boundaryfiles/
 
 Links:
-Blog post: http://www.shanelynn.ie
+Blog post: http://www.shanelynn.ie/self-organising-maps-for-customer-segmentation-using-r/
 Accompanying presentation: http://www.slideshare.net/shanelynn/2014-0117-dublin-r-selforganising-maps-for-customer-segmentation-shane-lynn
 
 
