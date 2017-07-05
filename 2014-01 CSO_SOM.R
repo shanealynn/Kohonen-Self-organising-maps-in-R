@@ -12,7 +12,7 @@
 # @shane_a_lynn
 
 ### LOAD LIBRARIES - install with:
-#install.packages(c("kohonen", "dummies", "ggplot2", "maptools", "sp", "reshape2", "rgeos"))
+#install.packages(c("kohonen", "dummies", "ggplot2", "maptools", "sp", "reshape2", "rgeos", "rgdal"))
 library(kohonen)
 library(dummies)
 library(ggplot2)
@@ -93,7 +93,6 @@ data_train <- data[, c(2,4,5,8)]
 # now train the SOM using the Kohonen method
 data_train_matrix <- as.matrix(scale(data_train))
 names(data_train_matrix) <- names(data_train)
-require(kohonen)
 if (small_areas){
   # larger grid for the small areas example (more samples)
   som_grid <- somgrid(xdim = 20, ydim=20, topo="hexagonal")  
@@ -103,7 +102,7 @@ if (small_areas){
 # Train the SOM model!
 system.time(som_model <- som(data_train_matrix, 
                              grid=som_grid, 
-                             rlen=1000, 
+                             rlen=500, 
                              alpha=c(0.1,0.01), 
                              keep.data = TRUE ))
 
@@ -136,9 +135,11 @@ plot(som_model, type = "property", property=var_unscaled, main=names(data_train)
 rm(var_unscaled)
 
 #plot a variable from the original data set (will be uncapped etc.)
-# This function produces a menu for multiple heatmaps.
+# This function produces a menu for multiple heatmaps if a factor or character is chosen
 source('plotHeatMap.R')
-plotHeatMap(som_model, data, variable=1)
+# A menu of all variables should be displayed if variable=0 
+# (note on Mac this will required working XQuartz installation.)
+plotHeatMap(som_model, data, variable=0)
 
 # ------------------ Clustering SOM results -------------------
 
@@ -185,6 +186,6 @@ if (small_areas){
 rm(cluster_details)
 
 # Finally map the areas and colour by cluster
-ggplot(mappoints) + aes(long, lat, group=group, fill=factor(cluster)) + geom_polygon()  + coord_equal() + scale_fill_manual(values = pretty_palette)
-#+ geom_path(colour="white", alpha=0.5, size=0.2) # if you want an outline
+ggplot(mappoints) + aes(long, lat, group=group, fill=factor(cluster)) + geom_polygon()  + coord_equal() + scale_fill_manual(values = pretty_palette) + 
+  geom_path(colour="white", alpha=0.5, size=0.05) # if you want an outline
 
