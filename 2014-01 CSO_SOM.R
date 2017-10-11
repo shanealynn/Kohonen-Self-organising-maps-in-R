@@ -16,6 +16,7 @@
 library(kohonen)
 library(dummies)
 library(ggplot2)
+library(rgdal)
 library(sp)
 library(maptools)
 library(reshape2)
